@@ -26,7 +26,7 @@ gulp.task('feature', function() { return inc('minor'); })
 gulp.task('release', function() { return inc('major'); })
 
 gulp.task('webserver', function () {
-  gulp.src('.')
+  return gulp.src('.')
     .pipe(plugins.webserver(config.webserver));
 })
 
@@ -34,6 +34,7 @@ gulp.task('js', function () {
   gulp.src("./index.js")
     .pipe(plugins.header(config.header))
     .pipe(plugins.footer(config.footer))
+    .pipe(plugins.rename("knockout-else.js"))
     .pipe(gulp.dest('./dist'))
 });
 
