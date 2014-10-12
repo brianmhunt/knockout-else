@@ -8,26 +8,38 @@ function endsCommentBinding(node) {
         .match(/^(<!--)?\s*\/ko/);
 }
 
-function getBindingConditional(node, bindingContext) {
-    var conditional;
-    var bindings = ko.bindingProvider.instance.getBindings(node, bindingContext);
-    if (!bindings) {
-        return
-    } else if (conditional = bindings['if']) {
-        return ko.pureComputed(function () {
-            return !ko.unwrap(conditional)
-        });
-    } else if (conditional = bindings['ifnot']) {
-        return ko.pureComputed(function () {
-            return ko.unwrap(conditional)
-        });
-    } else if (conditional = bindings['foreach']) {
-        return ko.pureComputed(function () {
-            var conResult = ko.unwrap(conditional);
-            return !conResult || conResult.length === 0;
-        });
+function getBindingConditional(node, bindings) {
+    var accessorFn, templateParams, fn;
+    if (accessorFn = bindings['if']) {
+        fn = function () {return !ko.unwrap(accessorFn()) };
+    } else if (accessorFn = bindings['ifnot']) {
+        fn = function () {return ko.unwrap(accessorFn()) };
+    } else if (accessorFn = bindings['foreach']) {
+        fn = function () {
+            var conResult = ko.unwrap(accessorFn());
+            return !conResult || conResult.length == 0; 
+        }
+    } else if (accessorFn = bindings['template']) {
+        if (accessorFn().hasOwnProperty('if') || accessorFn().hasOwnProperty('foreach')) {
+            fn = function () {
+                console.log("AFN", accessorFn, "()", accessorFn())
+                var params = accessorFn();
+                var foreach;
+                if (params.hasOwnProperty('if')) {
+                    return !ko.unwrap(params['if'])
+                }
+                if (!params.hasOwnProperty('foreach')) {
+                    return true
+                }
+                foreach = ko.unwrap(params['foreach']);
+                return !Boolean(foreach && foreach.length);
+            }
+        }
     }
-    return
+    return fn && ko.computed({
+        read: fn,
+        disposeWhenNodeIsRemoved: node
+    }); 
 }
 
 function prevVirtualNode(node) {
@@ -46,33 +58,46 @@ function prevVirtualNode(node) {
     return;
 }
 
-function getPrecedingConditional(element, bindingContext) {
-    var prevSib = element;
+function getPrecedingConditional(node, bindingContext) {
+    var bindings;
+
     do {
-        prevSib = prevSib.previousSibling;
-    } while (prevSib && prevSib.nodeType !== 1 && prevSib.nodeType !== 8);
-    if (!prevSib) {
+        node = node.previousSibling;
+    } while (node && node.nodeType !== 1 && node.nodeType !== 8);
+    if (!node) {
         return;
     }
-    if (prevSib.nodeType == 1) {
-        return getBindingConditional(prevSib, bindingContext);
-    } else if (prevSib.nodeType == 8) {
-        // The first previous adjacent node is a comment node.
-        return getBindingConditional(prevVirtualNode(prevSib), bindingContext);
+    if (node.nodeType == 8) {
+        node = prevVirtualNode(node);
     }
-    throw new Error("No.")
+    bindings = ko.bindingProvider.instance.getBindingAccessors(node, bindingContext);
+
+    return bindings && getBindingConditional(node, bindings);
 }
 
 function getLastChild(node) {
     var nextChild = ko.virtualElements.firstChild(node),
         lastChild;
 
-    while (nextChild) {
+    do {
         lastChild = nextChild;
-        nextChild = ko.virtualElements.nextSibling(nextChild);
-    }
+    } while (nextChild = ko.virtualElements.nextSibling(nextChild));
 
     return lastChild;
+}
+
+function wrapElementChildrenWithConditional(element) {
+    if (!element.firstChild) {
+        return;
+    }
+    ko.virtualElements.insertAfter(element,
+        document.createComment('/ko'),
+        getLastChild(element)
+    );
+
+    ko.virtualElements.prepend(element,
+        document.createComment('ko if: __elseCondition__')
+    );
 }
 
 
@@ -86,23 +111,11 @@ var elseBinding = {
         if (!elseConditional) {
             throw new Error("Knockout-else binding was not preceded by a conditional.");
         }
-
-        if (element.firstChild) {
-            ko.virtualElements.prepend(element,
-                document.createComment('ko if: __elseCondition__')
-            );
-            ko.virtualElements.insertAfter(element,
-                document.createComment('/ko'),
-                getLastChild(element)
-            );
-        }
-
+        wrapElementChildrenWithConditional(element, elseConditional);
         ko.applyBindingsToDescendants(bindingContext.extend({
             __elseCondition__: elseConditional
         }), element);
-        return {
-            controlsDescendantBindings: true
-        };
+        return {controlsDescendantBindings: true};
     }
 }
 
