@@ -9,7 +9,11 @@ Originally from http://jsfiddle.net/bmh_ca/hyrvtps4/
 
 
 ### Get started
-Include Knockout-Else, then init with `KnockoutElse.init()`.
+Get it with `npm install knockout-else` or `bower install knockout-else`.
+
+Include the `dist/knockout-else.js`, then init with `KnockoutElse.init()`.
+
+It should work fine in the ordinary with AMD/CommonJS.
 
 ### How to use
 
@@ -30,6 +34,7 @@ X is not truthy.
 <!-- ko else -->
 X is false or arr is empty/undefined.
 <!-- /ko -->
+
 
 <!-- ko foreach: arr -->
 <!-- /ko -->
