@@ -32,7 +32,8 @@ gulp.task('webserver', function () {
 
 gulp.task('js', function () {
   gulp.src("./index.js")
-    .pipe(plugins.header(config.header))
+    .pipe(plugins.header(config.header,
+        {pkg: require('./package.json'), now: new Date()}))
     .pipe(plugins.footer(config.footer))
     .pipe(plugins.rename("knockout-else.js"))
     .pipe(gulp.dest('./dist'))

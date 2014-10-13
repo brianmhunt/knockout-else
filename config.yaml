@@ -1,6 +1,6 @@
 header: |
   /*!
-    Knockout Else
+    Knockout Else v<%=pkg.version%> (<%=now.toISOString()%>)
     By: Brian M Hunt (C) 2014
     License: MIT
   */
