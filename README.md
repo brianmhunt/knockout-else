@@ -11,7 +11,7 @@ Originally from http://jsfiddle.net/bmh_ca/hyrvtps4/
 ### Get started
 Get it with `npm install knockout-else` or `bower install knockout-else`.
 
-Include the `dist/knockout-else.js`, then init with `KnockoutElse.init()`.
+Include the `dist/knockout-else.js`, then init with `KnockoutElse.init(spec)`.
 
 It should work fine in the ordinary with AMD/CommonJS.
 
@@ -41,7 +41,25 @@ X is false or arr is empty/undefined.
 <div data-bind='else'>
 arr is empty or undefined.
 </div>
+
+
+<!-- ko if: x -->X is true<!-- /ko -->
+<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
+<!-- else -->Neither X nor Y is true<!-- /ko -->
+
+<!-- ko if: x -->X is true<!-- /ko -->
+<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
+<!-- elseif: z -->X is not true, Y is not true, but Z is true.<!-- /ko -->
+
 ```
+
+### `spec` argument for `init`
+
+| Argument | Default | Meaning
+|---       | ---     | ---
+| elseBindingName  | `else` | `<string>` The name of the binding for 'else'; falsy to disable.
+| elseIfBindingName  | `elseif` | `<string>` The name of the binding for 'elseif'; falsy to disable.
+
 
 ES5 things
 ---

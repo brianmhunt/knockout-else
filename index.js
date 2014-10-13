@@ -1,7 +1,9 @@
 var conditionalHandlerKeys,
     conditionalHandlerMap,
     elseBinding,
-    elseIfBinding;
+    elseIfBinding,
+    elseBindingName,
+    elseIfBindingName;
 
 
 function startsCommentBinding(node) {
@@ -14,6 +16,9 @@ function endsCommentBinding(node) {
         .match(/^(<!--)?\s*\/ko/);
 }
 
+// These functions return true when the respective `else` binding should be shown,
+// notwithstanding when the if/else chain has already been satisfied (i.e. something above
+// is already showing).
 conditionalHandlerMap = {
     'if': function (bindingFn) {return function() {
         return !ko.unwrap(bindingFn()) }
@@ -50,7 +55,7 @@ function elseIfBindingConditionalHandler(bindingFn, node) {return function() {
 function elseChainIsSatisfied(node) {
     // If the preceding else/if chain is satisfied (i.e. an else block is true/shown),
     // then this else block should not be shown.
-    return ko.dataFor(ko.virtualElements.firstChild(node)).__elseChainIsSatisfied__();
+    return ko.contextFor(ko.virtualElements.firstChild(node)).__elseChainIsSatisfied__();
 }
 
 function getBindingConditional(node, bindings) {
@@ -102,6 +107,7 @@ function getPrecedingConditional(node, bindingContext) {
 
     return {
         conditional: bindings && getBindingConditional(node, bindings),
+        bindings: bindings,
         node: node
     }
 }
@@ -163,30 +169,41 @@ elseBinding = {
 
 elseIfBinding = {
     init: function (element, va, ab, vm, bindingContext) {
-        var elseConditional,
+        var preceding,
+            conditional,
+            chainIsSatisfied,
             openComment,
             closeComment;
+       
+        preceding = getPrecedingConditional(element, bindingContext);
+        if (!preceding) {
+            throw new Error("Knockout-elseif binding was not preceded by a conditional.");
+        }
 
-        if (va() !== void 0) {
-            throw new Error("Knockout-else binding must be bare (i.e. no value given).")
-        }
-        
-        elseConditional = getPrecedingConditional(element, bindingContext);
-        if (!elseConditional) {
-            throw new Error("Knockout-else binding was not preceded by a conditional.");
-        }
-        elseChainIsSatisfied = ko.computed({
+        chainIsSatisfied = ko.computed({
             pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
-                return  !elseChainIsSatisfied(elseConditional.node) && !ko.unwrap(elseConditional());
+                if (!preceding.conditional())
+                    return true; // The previous is satisfied.
+                if (preceding.bindings[elseIfBindingName] && elseChainIsSatisfied(preceding.node))
+                    return true; // Something before the previous is satisfied.
+                return false;
             }
         })
 
-        wrapElementChildrenWithConditional(element, elseConditional.conditional);
+        conditional = ko.computed({
+            pure: true,
+            disposeWhenNodeIsRemoved: element,
+            read: function () {
+                return Boolean(ko.unwrap(va()) && preceding.conditional())
+            }
+        })
+
+        wrapElementChildrenWithConditional(element, preceding.conditional);
         ko.applyBindingsToDescendants(bindingContext.extend({
-            __elseCondition__: elseConditional.conditional,
-            __elseChainIsSatisfied: elseChainIsSatisfied
+            __elseCondition__: conditional,
+            __elseChainIsSatisfied__: chainIsSatisfied
         }), element);
         return {controlsDescendantBindings: true};
     }
@@ -194,8 +211,8 @@ elseIfBinding = {
 
 function init(spec) {
     spec |= {};
-    var elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
-    var elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
+    elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
+    elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
         ko.virtualElements.allowedBindings[elseBindingName] = true;

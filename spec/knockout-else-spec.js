@@ -14,6 +14,11 @@ function stringToDiv(xml) {
   return frag;
 }
 
+function textFor(node) {
+  // return the text, removing all whitespace.
+  return (node.textContent || node.innerText).replace(/\s+/g, '');
+}
+
 function testNestedTriad(bits, vm, div) {
   // convert 3 bits into e.g. "A+B-C+"
 
@@ -27,11 +32,12 @@ function testNestedTriad(bits, vm, div) {
     vm.a(bits & 1);
     vm.b(bits & 2);
     vm.c(bits & 4);
-    assert.equal((div.textContent || div.innerText).replace(/\s+/g, ''), bitString);
+    assert.equal(textFor(div), bitString);
   })
 }
 
 
+//    ELSE
 describe("The `else` binding", function () {
   it("binds <element if><element else>", function () {
     var vm = {x: 1};
@@ -220,6 +226,8 @@ describe("The `else` binding", function () {
   })
 });
 
+
+//    getBindingConditional
 describe("getBindingConditional", function() {
   function testBinding(condition, expect) {
     var elseIsShown = getBindingConditional(null, condition);
@@ -306,13 +314,124 @@ describe("getBindingConditional", function() {
       obs([1,2,3])
       assert.equal(ttb(), false)
     })
-
-
-
-
-
   })
 
+})
+
+//      ELSEIF
+describe("The elseif binding", function () {
+  describe("when bound", function () {
+    var vm = {
+      x: ko.observable(),
+      y: ko.observable(),
+    }
+    var div = stringToDiv(
+      "<!-- ko if: x -->X<!-- /ko -->" +
+      "<!-- ko elseif: y -->Y<!-- /ko -->"
+    );
+    ko.applyBindings(vm, div)
+
+    it("adds __elseChainIsSatisfied__ computed to node context", function () {
+      // node 3 is <!--ko if: __elseCondition__-->
+      vm.x(undefined);
+      vm.y(undefined);
+      assert.ok(ko.isComputed(ko.contextFor(div.childNodes[3]).__elseChainIsSatisfied__))
+    })
+
+    it("does not show else if original condition is true", function () {
+      vm.x(true);
+      vm.y(true);
+      assert.equal(textFor(div), 'X');
+    })
+
+    it("shows the else if original is false", function () {
+      vm.x(false);
+      vm.y(true);
+      assert.equal(textFor(div), 'Y');
+    })
+  })
+
+  describe("the else-if chain of x, y ,z", function () {
+    var vm = {
+      x: ko.observable(),
+      y: ko.observable(),
+      z: ko.observable()
+    };
+    var div = stringToDiv(
+      "<!-- ko if: x -->X<!-- /ko -->" +
+      "<!-- ko elseif: y -->Y<!-- /ko -->" +
+      "<!-- ko elseif: z -->Z<!-- /ko -->" 
+    )
+    ko.applyBindings(vm, div);
+    function set_vm(x, y, z) {vm.x(x); vm.y(y); vm.z(z); }
+
+    it("shows only X if X is true", function () {
+      set_vm(true, false, false);
+      assert.equal(textFor(div), 'X')
+    })
+
+    it("shows only X if everything is true", function () {
+      set_vm(true, true, true);
+      assert.equal(textFor(div), 'X');
+    })
+
+    it("shows Y if !X, Y", function () {
+      set_vm(false, true, false);
+      assert.equal(textFor(div), 'Y')
+    })
+
+    it("shows Y if !X, Y, Z", function () {
+      set_vm(false, true, true);
+      assert.equal(textFor(div), 'Y')
+    })
+
+    it("shows Z if !X, !Y, Z", function () {
+      window.evm = vm;
+      set_vm(false, false, true);
+      assert.equal(textFor(div), 'Z')
+    })
+
+    it("shows nothing if !X, !Y, !Z", function () {
+      set_vm(false, false, false);
+      assert.equal(textFor(div), '')
+    })
+  })
+
+  describe("the x,y,z chain followed by an else binding", function () {
+    var vm = {
+      x: ko.observable(),
+      y: ko.observable(),
+      z: ko.observable()
+    };
+    var div = stringToDiv(
+      "<!-- ko if: x -->X<!-- /ko -->" +
+      "<!-- ko elseif: y -->Y<!-- /ko -->" +
+      "<!-- ko elseif: z -->Z<!-- /ko -->" +
+      "<!-- ko else -->G<!-- /ko -->"
+    )
+    ko.applyBindings(vm, div);
+    function set_vm(x, y, z) {vm.x(x); vm.y(y); vm.z(z); }
+
+    it("does not show the else if x is true", function () {
+      set_vm(true, false, false);
+      assert.equal(textFor(div), "X");
+    })
+
+    it("only shows Y when it is true", function () {
+      set_vm(false, true, false);
+      assert.equal(textFor(div), "Y");
+    })
+
+    it("only shows Z when it is true", function () {
+      set_vm(false, false, true);
+      assert.equal(textFor(div), "Z");
+    })
+
+    it("shows G when everything is false", function () {
+      set_vm(false, false, false);
+      assert.equal(textFor(div), "G");
+    })
+  })
 })
 
 
