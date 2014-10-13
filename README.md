@@ -57,6 +57,8 @@ arr is empty or undefined.
 
 ### `spec` argument for `init`
 
+You likely do not need to specify any, but the options are:
+
 | Argument | Default | Meaning
 |---       | ---     | ---
 | elseBindingName  | `else` | `<string>` The name of the binding for 'else'; falsy to disable.
