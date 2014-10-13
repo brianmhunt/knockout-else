@@ -42,3 +42,9 @@ X is false or arr is empty/undefined.
 arr is empty or undefined.
 </div>
 ```
+
+ES5 things
+---
+The following will need to be shimmed for older browser support (i.e. IE8 and lower):
+
+- Object.keys

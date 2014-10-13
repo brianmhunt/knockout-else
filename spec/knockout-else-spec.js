@@ -98,8 +98,9 @@ describe("The `else` binding", function () {
 
   it("adds a strut to the contents of an empty else element", function () {
     var div = stringToDiv("<u data-bind='if: x'></u><u data-bind='else'></u>");
-    var etext = '<u data-bind="if: x"></u><u data-bind="else"><!--ko if: __elseCondition__--><!--/ko--></u>';
-    ko.applyBindings({x: 1}, div);
+    var etext = '<u data-bind="if: x"></u><u data-bind="else">' +
+      '<!--ko if: __elseCondition__--><!--strut--><!--/ko--></u>';
+    ko.applyBindings({x: 0}, div);
     assert.equal(div.innerHTML, etext);
   })
 
