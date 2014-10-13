@@ -68,7 +68,6 @@ function getBindingConditional(node, bindings) {
             handlerFn = conditionalHandlerMap[key].call(this, conditionalBinding, node);
             return handlerFn && ko.computed({
                 read: handlerFn,
-                pure: true,
                 disposeWhenNodeIsRemoved: node
             }); 
         }
@@ -179,7 +178,6 @@ elseIfBinding = {
             }
         });
         conditional = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 return Boolean(ko.unwrap(va()) && preceding.conditional())
