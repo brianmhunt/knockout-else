@@ -169,7 +169,6 @@ elseIfBinding = {
             chainIsSatisfied;
         preceding = getPrecedingConditional(element, bindingContext);
         chainIsSatisfied = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 if (!preceding.conditional())
