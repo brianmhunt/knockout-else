@@ -1,3 +1,9 @@
+var conditionalHandlerKeys,
+    conditionalHandlerMap,
+    elseBinding,
+    elseIfBinding;
+
+
 function startsCommentBinding(node) {
     return (node.textContent || node.innerText)
         .match(/^(<!--)?\s*ko\s+[\s\S]+/);
@@ -8,7 +14,7 @@ function endsCommentBinding(node) {
         .match(/^(<!--)?\s*\/ko/);
 }
 
-var conditionalHandlerMap = {
+conditionalHandlerMap = {
     'if': function (bindingFn) {return function() {
         return !ko.unwrap(bindingFn()) }
     },
@@ -35,7 +41,17 @@ var conditionalHandlerMap = {
     }
 };
 
-var conditionalHandlerKeys;
+
+function elseIfBindingConditionalHandler(bindingFn, node) {return function() {
+        return !elseChainIsSatisfied(node) && !ko.unwrap(bindingFn());
+    }
+}
+
+function elseChainIsSatisfied(node) {
+    // If the preceding else/if chain is satisfied (i.e. an else block is true/shown),
+    // then this else block should not be shown.
+    return ko.dataFor(ko.virtualElements.firstChild(node)).__elseChainIsSatisfied__();
+}
 
 function getBindingConditional(node, bindings) {
     var key, conditionalBinding;
@@ -77,14 +93,17 @@ function getPrecedingConditional(node, bindingContext) {
         node = node.previousSibling;
     } while (node && node.nodeType !== 1 && node.nodeType !== 8);
     if (!node) {
-        return;
+        return { conditional: false, node: null };
     }
     if (node.nodeType == 8) {
         node = prevVirtualNode(node);
     }
     bindings = ko.bindingProvider.instance.getBindingAccessors(node, bindingContext);
 
-    return bindings && getBindingConditional(node, bindings);
+    return {
+        conditional: bindings && getBindingConditional(node, bindings),
+        node: node
+    }
 }
 
 function getLastChild(node) {
@@ -116,10 +135,13 @@ function wrapElementChildrenWithConditional(element) {
     );
 }
 
+function applyElseBinding(element, bindingContext) {
 
-var elseBinding = {
+}
+
+elseBinding = {
     init: function (element, va, ab, vm, bindingContext) {
-        var elseConditional,
+        var preceding,
             openComment,
             closeComment;
 
@@ -127,19 +149,19 @@ var elseBinding = {
             throw new Error("Knockout-else binding must be bare (i.e. no value given).")
         }
         
-        elseConditional = getPrecedingConditional(element, bindingContext); 
-        if (!elseConditional) {
+        preceding = getPrecedingConditional(element, bindingContext); 
+        if (!preceding.conditional) {
             throw new Error("Knockout-else binding was not preceded by a conditional.");
         }
-        wrapElementChildrenWithConditional(element, elseConditional);
+        wrapElementChildrenWithConditional(element, preceding.conditional);
         ko.applyBindingsToDescendants(bindingContext.extend({
-            __elseCondition__: elseConditional
+            __elseCondition__: preceding.conditional
         }), element);
         return {controlsDescendantBindings: true};
     }
 };
 
-var elseIfBinding = {
+elseIfBinding = {
     init: function (element, va, ab, vm, bindingContext) {
         var elseConditional,
             openComment,
@@ -149,13 +171,22 @@ var elseIfBinding = {
             throw new Error("Knockout-else binding must be bare (i.e. no value given).")
         }
         
-        elseConditional = getPrecedingConditional(element, bindingContext); 
+        elseConditional = getPrecedingConditional(element, bindingContext);
         if (!elseConditional) {
             throw new Error("Knockout-else binding was not preceded by a conditional.");
         }
-        wrapElementChildrenWithConditional(element, elseConditional);
+        elseChainIsSatisfied = ko.computed({
+            pure: true,
+            disposeWhenNodeIsRemoved: element,
+            read: function () {
+                return  !elseChainIsSatisfied(elseConditional.node) && !ko.unwrap(elseConditional());
+            }
+        })
+
+        wrapElementChildrenWithConditional(element, elseConditional.conditional);
         ko.applyBindingsToDescendants(bindingContext.extend({
-            __elseCondition__: elseConditional
+            __elseCondition__: elseConditional.conditional,
+            __elseChainIsSatisfied: elseChainIsSatisfied
         }), element);
         return {controlsDescendantBindings: true};
     }
@@ -172,6 +203,7 @@ function init(spec) {
     if (elseIfBindingName) {
         ko.bindingHandlers[elseIfBindingName] = elseIfBinding;
         ko.virtualElements.allowedBindings[elseIfBindingName] = true;
+        conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
 }
