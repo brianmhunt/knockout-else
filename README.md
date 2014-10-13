@@ -11,7 +11,7 @@ Originally from http://jsfiddle.net/bmh_ca/hyrvtps4/
 ### Get started
 Get it with `npm install knockout-else` or `bower install knockout-else`.
 
-Include the `dist/knockout-else.js`, then init with `KnockoutElse.init(spec)`.
+Include the `dist/knockout-else.js`, then init with `KnockoutElse.init([spec={}])`.
 
 It should work fine in the ordinary with AMD/CommonJS.
 
