@@ -3,15 +3,17 @@ var conditionalHandlerKeys,
     elseBinding,
     elseIfBinding,
     elseBindingName,
-    elseIfBindingName;
+    elseIfBindingName,
+    startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
+    endCommentRex = /^(<!--)?\s*\/ko/;
 
 
 function startsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*ko\s+[\s\S]+/);
+    return startCommentRex.test(node.nodeValue);
 } 
 
 function endsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*\/ko/);
+    return endCommentRex.test(node.nodeValue);
 }
 
 // These functions return true when the respective `else` binding should be shown,
@@ -191,10 +193,16 @@ elseIfBinding = {
     }
 };
 
+function addElsePreprocessor(elseRewriterRex, elseIfRewriterRex) {
+
+}
+
 function init(spec) {
     spec |= {};
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
+    var elseRewriter = spec.hasOwnProperty('elseRewriter') ? spec.elseRewriter: '^\s*else\s*$';
+    var elseIfRewriter = spec.hasOwnProperty('elseIfRewriter') ? spec.elseIfRewriter: '^\s*else\s*$';
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
         ko.virtualElements.allowedBindings[elseBindingName] = true;
@@ -203,6 +211,9 @@ function init(spec) {
         ko.bindingHandlers[elseIfBindingName] = elseIfBinding;
         ko.virtualElements.allowedBindings[elseIfBindingName] = true;
         conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
+    }
+    if (elseRewriter || elseIfRewriter) {
+        addElsePreprocessor(elseRewriter, elseIfRewriter)
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
 }
