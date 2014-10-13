@@ -17,6 +17,8 @@ It should work fine in the ordinary with AMD/CommonJS.
 
 ### How to use
 
+Some examples:
+
 ```html
 <div data-bind='if: x'>X</div>
 <div data-bind='else'>!X</div>
