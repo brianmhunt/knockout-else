@@ -14,6 +14,23 @@ function stringToDiv(xml) {
   return frag;
 }
 
+function testNestedTriad(bits, vm, div) {
+  // convert 3 bits into e.g. "A+B-C+"
+
+  var bitString = '';
+  for (var i = 0; i <= 2; i++) {
+    // 65 = 'A'
+    bitString += String.fromCharCode(i + 65) + (bits & Math.pow(2, i) ? '+' : '-');
+  }
+
+  it("expecting (" + bits.toString(2) + ") " + bitString, function () {
+    vm.a(bits & 1);
+    vm.b(bits & 2);
+    vm.c(bits & 4);
+    assert.equal((div.textContent || div.innerText).replace(/\s+/g, ''), bitString);
+  })
+}
+
 
 describe("The `else` binding", function () {
   it("binds <element if><element else>", function () {
@@ -79,10 +96,11 @@ describe("The `else` binding", function () {
     assert.strictEqual(ko.dataFor(div.lastChild), vm);
   })
 
-  it("does not modify the contents of an empty else element", function () {
+  it("adds a strut to the contents of an empty else element", function () {
     var div = stringToDiv("<u data-bind='if: x'></u><u data-bind='else'></u>");
+    var etext = '<u data-bind="if: x"></u><u data-bind="else"><!--ko if: __elseCondition__--><!--/ko--></u>';
     ko.applyBindings({x: 1}, div);
-    assert.equal(div.innerHTML, "<u data-bind=\"if: x\"></u><u data-bind=\"else\"></u>")
+    assert.equal(div.innerHTML, etext);
   })
 
   it("wraps the contents of an else element", function () {
@@ -126,6 +144,78 @@ describe("The `else` binding", function () {
   it("throws an error for preceding template{} without an if|foreach", function () {
     var div = stringToDiv("<u data-bind='template: {name: ''}'></u><!-- ko else --><!-- /ko -->");
     assert.throws(function () {ko.applyBindings({}, div)}, "Knockout-else binding was not preceded");
+  })
+
+  it("throws an error with double `else` bindings", function () {
+    var div = stringToDiv("<!--ko if: 1--><!--/ko--><!--ko else--><!--/ko--><!--ko else--><!--/ko-->");
+    assert.throws(function () {ko.applyBindings({}, div)}, "Knockout-else binding was not preceded");
+  })
+
+  it("throws an error when given a value", function () {
+    var div = stringToDiv("<!--ko if: 1--><!--/ko--><!--ko else: false--><!--/ko-->");
+    assert.throws(function () {ko.applyBindings({}, div)}, "Knockout-else binding must be bare");
+  })
+
+  describe("nested with adjacent if/else", function () {
+    var vm = {
+      a: ko.observable(),
+      b: ko.observable(),
+      c: ko.observable(),
+    };
+    var div = stringToDiv(
+      "<u data-bind='if: a'>A+" +
+      "  <u data-bind='if: b'>B+</u>" +
+      "  <u data-bind='else'>B-</u>" +
+      "  <u data-bind='if: c'>C+</u>" +
+      "  <u data-bind='else'>C-</u>" +
+      "</u>" +
+      "<!-- ko else -->A-" +
+      "  <u data-bind='if: b'>B+</u>" +
+      "  <u data-bind='else'>B-</u>" +
+      "  <u data-bind='if: c'>C+</u>" +
+      "  <u data-bind='else'>C-</u>" +
+      "<!-- /ko -->"
+    );
+    ko.applyBindings(vm, div);
+
+    for (var i = 0; i < 8; i++) {
+      testNestedTriad(i, vm, div);
+    }
+  })
+
+  describe("three nested if/else", function () {
+    var vm = {
+      a: ko.observable(),
+      b: ko.observable(),
+      c: ko.observable(),
+    };
+    var div = stringToDiv(
+      "<u data-bind='if: a'>A+" +
+      "  <u data-bind='if: b'>B+" +
+      "   <u data-bind='if:c'>C+</u>" +
+      "   <u data-bind='else'>C-</u>" +
+      "  </u>" +
+      "  <u data-bind='else'>B-" +
+      "    <u data-bind='if: c'>C+</u>" +
+      "    <u data-bind='else'>C-</u>" +
+      "  </u>" +
+      "</u>" +
+      "<u data-bind='else'>A-" +
+      "  <u data-bind='if: b'>B+" +
+      "   <u data-bind='if:c'>C+</u>" +
+      "   <u data-bind='else'>C-</u>" +
+      "  </u>" +
+      "  <u data-bind='else'>B-" +
+      "    <u data-bind='if: c'>C+</u>" +
+      "    <u data-bind='else'>C-</u>" +
+      "  </u>" +
+      "</u>"
+    );
+    ko.applyBindings(vm, div);
+
+    for (var i = 0; i < 8; i++) {
+      testNestedTriad(i, vm, div);
+    }
   })
 });
 

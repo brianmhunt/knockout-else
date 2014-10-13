@@ -22,7 +22,6 @@ function getBindingConditional(node, bindings) {
     } else if (accessorFn = bindings['template']) {
         if (accessorFn().hasOwnProperty('if') || accessorFn().hasOwnProperty('foreach')) {
             fn = function () {
-                console.log("AFN", accessorFn, "()", accessorFn())
                 var params = accessorFn();
                 var foreach;
                 if (params.hasOwnProperty('if')) {
@@ -87,9 +86,13 @@ function getLastChild(node) {
 }
 
 function wrapElementChildrenWithConditional(element) {
-    if (!element.firstChild) {
-        return;
+    // add a strut so this element has at least one item.
+    if (!ko.virtualElements.firstChild(element)) {
+        ko.virtualElements.setDomNodeChildren(element,
+            [document.createComment('strut')]
+        );
     }
+
     ko.virtualElements.insertAfter(element,
         document.createComment('/ko'),
         getLastChild(element)
@@ -103,6 +106,9 @@ function wrapElementChildrenWithConditional(element) {
 
 var elseBinding = {
     init: function (element, va, ab, vm, bindingContext) {
+        if (va() !== void 0) {
+            throw new Error("Knockout-else binding must be bare (i.e. no value given).")
+        }
         var elseConditional,
             openComment,
             closeComment;
