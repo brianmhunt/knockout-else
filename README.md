@@ -1,7 +1,7 @@
 knockout-else
 =============
 
-(If -) Else binding for Knockout
+else/elseif binding for Knockout
 
 
 Re. https://github.com/knockout/knockout/issues/962
