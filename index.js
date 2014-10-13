@@ -7,13 +7,11 @@ var conditionalHandlerKeys,
 
 
 function startsCommentBinding(node) {
-    return (node.textContent || node.innerText)
-        .match(/^(<!--)?\s*ko\s+[\s\S]+/);
+    return node.nodeValue.match(/^(<!--)?\s*ko\s+[\s\S]+/);
 } 
 
 function endsCommentBinding(node) {
-    return (node.textContent || node.innerText)
-        .match(/^(<!--)?\s*\/ko/);
+    return node.nodeValue.match(/^(<!--)?\s*\/ko/);
 }
 
 // These functions return true when the respective `else` binding should be shown,
