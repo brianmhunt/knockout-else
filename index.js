@@ -92,21 +92,24 @@ function prevVirtualNode(node) {
 }
 
 function getPrecedingConditional(node, bindingContext) {
-    var bindings;
+    var bindings, conditional;
 
     do {
         node = node.previousSibling;
     } while (node && node.nodeType !== 1 && node.nodeType !== 8);
     if (!node) {
-        return { conditional: false, node: null };
+        throw new Error("Knockout-else binding was not preceded by a conditional.");
     }
     if (node.nodeType == 8) {
         node = prevVirtualNode(node);
     }
     bindings = ko.bindingProvider.instance.getBindingAccessors(node, bindingContext);
+    if (!bindings || !(conditional = getBindingConditional(node, bindings))) {
+        throw new Error("Knockout-else binding was not preceded by a conditional.");
+    }
 
     return {
-        conditional: bindings && getBindingConditional(node, bindings),
+        conditional: conditional,
         bindings: bindings,
         node: node
     }
@@ -141,29 +144,21 @@ function wrapElementChildrenWithConditional(element) {
     );
 }
 
-function applyElseBinding(element, bindingContext) {
-
+function applyElseBinding(element, conditional, bindingContext, innerContext) {
+    wrapElementChildrenWithConditional(element, conditional);
+    ko.applyBindingsToDescendants(bindingContext.extend(innerContext), element);
+    return {controlsDescendantBindings: true};
 }
 
 elseBinding = {
     init: function (element, va, ab, vm, bindingContext) {
-        var preceding,
-            openComment,
-            closeComment;
-
         if (va() !== void 0) {
             throw new Error("Knockout-else binding must be bare (i.e. no value given).")
         }
-        
-        preceding = getPrecedingConditional(element, bindingContext); 
-        if (!preceding.conditional) {
-            throw new Error("Knockout-else binding was not preceded by a conditional.");
-        }
-        wrapElementChildrenWithConditional(element, preceding.conditional);
-        ko.applyBindingsToDescendants(bindingContext.extend({
+        var preceding = getPrecedingConditional(element, bindingContext);
+        return applyElseBinding(element, preceding.conditional, bindingContext, {
             __elseCondition__: preceding.conditional
-        }), element);
-        return {controlsDescendantBindings: true};
+        });
     }
 };
 
@@ -171,15 +166,8 @@ elseIfBinding = {
     init: function (element, va, ab, vm, bindingContext) {
         var preceding,
             conditional,
-            chainIsSatisfied,
-            openComment,
-            closeComment;
-       
+            chainIsSatisfied;
         preceding = getPrecedingConditional(element, bindingContext);
-        if (!preceding) {
-            throw new Error("Knockout-elseif binding was not preceded by a conditional.");
-        }
-
         chainIsSatisfied = ko.computed({
             pure: true,
             disposeWhenNodeIsRemoved: element,
@@ -190,22 +178,18 @@ elseIfBinding = {
                     return true; // Something before the previous is satisfied.
                 return false;
             }
-        })
-
+        });
         conditional = ko.computed({
             pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 return Boolean(ko.unwrap(va()) && preceding.conditional())
             }
-        })
-
-        wrapElementChildrenWithConditional(element, preceding.conditional);
-        ko.applyBindingsToDescendants(bindingContext.extend({
+        });
+        return applyElseBinding(element, conditional, bindingContext, {
             __elseCondition__: conditional,
             __elseChainIsSatisfied__: chainIsSatisfied
-        }), element);
-        return {controlsDescendantBindings: true};
+        });
     }
 };
 
