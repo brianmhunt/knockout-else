@@ -4,14 +4,15 @@ var conditionalHandlerKeys,
     elseIfBinding,
     elseBindingName,
     elseIfBindingName,
+    inlineElse,
     startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
     endCommentRex = /^(<!--)?\s*\/ko/,
     ve = ko.virtualElements, // convenience
     rewrittenBindingsName = {
-        'if': '__elseRewritten_if',
-        'ifnot': '__elseRewritten_ifnot',
-        'template': '__elseRewritten_template',
-        'foreach': '__elseRewritten_foreach'
+        'if': '__ko_if',
+        'ifnot': '__ko_ifnot',
+        'template': '__ko_template',
+        'foreach': '__ko_foreach'
     };
 
 
@@ -138,8 +139,11 @@ function getLastChild(node) {
 }
 
 function wrapElementChildrenWithConditional(element) {
+    var conditionComment;
     // add a strut so this element has at least one item.
     if (!ve.firstChild(element)) {
+        // Every if/block needs at least one element so we can call
+        // contextFor on it.
         ve.setDomNodeChildren(element,
             [document.createComment('strut')]
         );
@@ -150,9 +154,14 @@ function wrapElementChildrenWithConditional(element) {
         getLastChild(element)
     );
 
-    ve.prepend(element,
-        document.createComment('ko if: __elseCondition__')
-    );
+    if (inlineElse) {
+        conditionComment = document.createComment(
+            'ko ' + rewrittenBindingsName['if'] + ': __elseCondition__'
+        );
+    } else {
+        conditionComment = document.createComment('ko if: __elseCondition__');
+    }
+    ve.prepend(element, conditionComment);   
 }
 
 function applyElseBinding(element, conditional, bindingContext, innerContext) {
@@ -203,7 +212,8 @@ elseIfBinding = {
 };
 
 
-var inlineElseRex = /\s*else\s*/;
+var inlineElseRex = /^\s*else\s*$/;
+var inlineElseIfRex = /^\s*else\s*if:\s*([\s\S]+)$/;
 function replaceBinding(handlerName) {
     var originalHandlerName = rewrittenBindingsName[handlerName];
 
@@ -219,23 +229,21 @@ function replaceBinding(handlerName) {
                 lastNode = null;
 
             do {
-                console.log("NodE!", node)
                 if (node.nodeType === 8) {
                     if (inlineElseRex.test(node.nodeValue)) {
                         ve.insertAfter(element, document.createComment('ko else'), lastNode);
                         ve.insertAfter(element, document.createComment('/ko'), lastNode);
                         node.nodeValue = '';
+                    } else if (match = inlineElseIfRex.exec(node.nodeValue)) {
+                        ve.insertAfter(element, document.createComment('ko elseif: ' + match[1]), lastNode);
+                        ve.insertAfter(element, document.createComment('/ko'), lastNode)
+                        node.nodeValue = '';
                     }
                 }
                 lastNode = node;
             } while (node = ve.nextSibling(node));
-            console.log("NV", element.parentNode.innerHTML)
-
             ve.insertAfter(element, closeComment, lastNode);
             ve.prepend(element, openComment);
-            console.log("NxV", element.parentNode.innerHTML)
-            // throw new Error("What's sup?")
-
             var innerContext = {
                 __elseWrapperValueAccessor__: valueAccessor
             };
@@ -247,26 +255,11 @@ function replaceBinding(handlerName) {
 }
 
 
-function elseIfPreprocessor(node) {
-    var match, closeNode, elseNode, nextNode;
-    console.log("EIP", node.nodeValue);
-    if (node.nodeType === 8 && (match = elseIfRewriterRex.exec(node.nodeValue))) {
-        console.log("EI:y", match)
-        nextNode = node.nextSibling;
-        closeNode = document.createComment('/ko');
-        elseNode = document.createComment('ko elseif:' + match[1]);
-        node.parentNode.insertBefore(elseNode, nextNode);
-        node.parentNode.insertBefore(closeNode, elseNode);
-        node.parentNode.removeChild(node);
-        return [closeNode, elseNode];
-    }
-}
-
 function init(spec) {
     if (!spec) {
         spec = {};
     }
-    var inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : true;
+    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : true;
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
 
