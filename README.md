@@ -65,10 +65,12 @@ arr is empty or undefined.
 
 Knockout-else provides short-hand virtual-element-like comments `else` and 
 `elseif: expression`. These are rewritten as `<!--/ko--><!--ko else-->`
-and `<!--/ko--><!-- ko elseif: expression -->`. The `<!--/ko--> is there to 
-close the preceding/excapsulating conditional block.
+and `<!--/ko--><!-- ko elseif: expression -->`. 
 
-With tags:
+The `<!--/ko--> is there to close the preceding/excapsulating conditional
+block, as you can see in the rewritten example below.
+
+You can use inline short-hand with regular tags:
 ```html
 <div data-bind='if: x' -->
   X
@@ -79,16 +81,12 @@ With tags:
 </div>
 ```
 
-With virtual elements:
+... and with virtual elements:
 ```html
 <!-- ko if: x -->X
 <!-- elseif: y -->Y
 <!-- else -->~X and ~Y
 ```
-
-The `inlineElse` short-hand uses a wrapper for the respective original knockout 
-bindings. The original bindings `if`, `ifnot`, `template` and `foreach` are
-accessible still through `ko.bindingHandlers.__ko_if`, ....
 
 The virtual elements above will be rewritten as:
 
@@ -103,10 +101,18 @@ The virtual elements above will be rewritten as:
       <!--/ko-->
     <!--/ko-->
     <!-- ko else -->
-       ~X and ~Y
+      <!--ko __ko_if: __elseCondition__-->
+        ~X and ~Y
+      <!--/ko-->
     <!-- /ko -->
   <!--/ko-->
 ```
+
+The "inline else/if" short-hand replaces the knockout 
+bindings for `if`, `ifnot`, `foreach` and `template`.
+The original bindings `if`, `ifnot`, `template` and `foreach` are
+accessible still through `ko.bindingHandlers.__ko_if`, ....
+
 
 
 ### `spec` argument for `init`
