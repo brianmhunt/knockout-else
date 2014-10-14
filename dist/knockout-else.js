@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.3 (2014-10-13T21:49:22.181Z)
+  Knockout Else v1.0.3 (2014-10-14T00:19:35.848Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -18,15 +18,17 @@ var conditionalHandlerKeys,
     elseBinding,
     elseIfBinding,
     elseBindingName,
-    elseIfBindingName;
+    elseIfBindingName,
+    startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
+    endCommentRex = /^(<!--)?\s*\/ko/;
 
 
 function startsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*ko\s+[\s\S]+/);
+    return startCommentRex.test(node.nodeValue);
 } 
 
 function endsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*\/ko/);
+    return endCommentRex.test(node.nodeValue);
 }
 
 // These functions return true when the respective `else` binding should be shown,
@@ -81,7 +83,6 @@ function getBindingConditional(node, bindings) {
             handlerFn = conditionalHandlerMap[key].call(this, conditionalBinding, node);
             return handlerFn && ko.computed({
                 read: handlerFn,
-                pure: true,
                 disposeWhenNodeIsRemoved: node
             }); 
         }
@@ -182,7 +183,6 @@ elseIfBinding = {
             chainIsSatisfied;
         preceding = getPrecedingConditional(element, bindingContext);
         chainIsSatisfied = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 if (!preceding.conditional())
@@ -193,7 +193,6 @@ elseIfBinding = {
             }
         });
         conditional = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 return Boolean(ko.unwrap(va()) && preceding.conditional())
