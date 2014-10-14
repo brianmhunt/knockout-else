@@ -62,7 +62,8 @@ arr is empty or undefined.
 
 
 #### inline else/else-if short-hand
-** EXPERIMENTAL **
+** EXPERIMENTAL ** - I am testing this out, but it seems to work fine for the `if`, `ifnot` and `foreach` bindings.
+*It does not at the moment work for the `template` binding.*
 
 Knockout-else provides short-hand virtual-element-like comments `else` and 
 `elseif: expression`. These are rewritten as `<!--/ko--><!--ko else-->`
