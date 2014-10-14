@@ -21,9 +21,9 @@ function inc(importance) {
     .pipe(plugins.tagVersion())
 }
 
-gulp.task('patch', function() { return inc('patch'); })
-gulp.task('feature', function() { return inc('minor'); })
-gulp.task('release', function() { return inc('major'); })
+gulp.task('patch', ['js'], function() { return inc('patch'); })
+gulp.task('feature', ['js'], function() { return inc('minor'); })
+gulp.task('release', ['js'], function() { return inc('major'); })
 
 gulp.task('webserver', function () {
   return gulp.src('.')

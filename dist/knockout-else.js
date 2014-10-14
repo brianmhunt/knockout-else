@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.5 (2014-10-14T15:42:47.436Z)
+  Knockout Else v1.0.7 (2014-10-14T15:48:43.367Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -12,7 +12,6 @@
     root.KnockoutElse = factory(root.ko);
   }
 }(this, function (ko) {
-var KE = {};
 var conditionalHandlerKeys,
     conditionalHandlerMap,
     elseBinding,
@@ -244,7 +243,7 @@ function replaceBinding(handlerName) {
                 lastNode = null;
 
             do {
-                if (node.nodeType === 8) {
+                if (node && node.nodeType === 8) {
                     if (inlineElseRex.test(node.nodeValue)) {
                         ve.insertAfter(element, document.createComment('ko else'), lastNode);
                         ve.insertAfter(element, document.createComment('/ko'), lastNode);
