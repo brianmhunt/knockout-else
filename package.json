@@ -1,6 +1,6 @@
 {
   "name": "knockout-else",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "else/elseif for Knockout",
   "main": "index.js",
   "scripts": {
