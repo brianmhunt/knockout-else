@@ -62,6 +62,7 @@ arr is empty or undefined.
 
 
 #### inline else/else-if short-hand
+** EXPERIMENTAL **
 
 Knockout-else provides short-hand virtual-element-like comments `else` and 
 `elseif: expression`. These are rewritten as `<!--/ko--><!--ko else-->`
@@ -121,7 +122,7 @@ You likely do not need to specify any, but the options are:
 
 | Argument | Default | Meaning
 |---       | ---     | ---
-| inlineElse | `true`  | `<bool>` When truthy the `<!-- else -->` and `<!-- elseif: -->` short-hands will be enabled.
+| inlineElse | `false`  | `<bool>` When truthy the `<!-- else -->` and `<!-- elseif: -->` short-hands will be enabled.
 | elseBindingName | `else` | `<string> or falsy` The name of the binding for 'else'; falsy to disable.
 | elseIfBindingName  | `elseif` | `<string> or falsy` The name of the binding for 'elseif'; falsy to disable.
 

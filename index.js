@@ -260,7 +260,7 @@ function init(spec) {
     if (!spec) {
         spec = {};
     }
-    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : true;
+    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : false;
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
 

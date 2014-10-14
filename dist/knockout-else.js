@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.10 (2014-10-14T16:30:25.872Z)
+  Knockout Else v1.0.10 (2014-10-14T16:42:38.604Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -274,7 +274,7 @@ function init(spec) {
     if (!spec) {
         spec = {};
     }
-    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : true;
+    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : false;
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
 
