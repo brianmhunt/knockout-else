@@ -18,12 +18,14 @@ function inc(importance) {
     .pipe(gulp.dest('./'))
     .pipe(plugins.git.commit('bumps package version'))
     .pipe(plugins.filter('package.json'))
-    .pipe(plugins.tagVersion())
+    // .pipe(plugins.tagVersion());
+    // FIXME
+    // See https://github.com/ikari-pl/gulp-tag-version/issues/4
 }
 
-gulp.task('patch', ['js'], function() { return inc('patch'); })
-gulp.task('feature', ['js'], function() { return inc('minor'); })
-gulp.task('release', ['js'], function() { return inc('major'); })
+gulp.task('patch', function() { return inc('patch'); })
+gulp.task('feature', function() { return inc('minor'); })
+gulp.task('release', function() { return inc('major'); })
 
 gulp.task('webserver', function () {
   return gulp.src('.')
