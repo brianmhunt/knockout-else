@@ -229,7 +229,7 @@ function replaceBinding(handlerName) {
                 lastNode = null;
 
             do {
-                if (node.nodeType === 8) {
+                if (node && node.nodeType === 8) {
                     if (inlineElseRex.test(node.nodeValue)) {
                         ve.insertAfter(element, document.createComment('ko else'), lastNode);
                         ve.insertAfter(element, document.createComment('/ko'), lastNode);
