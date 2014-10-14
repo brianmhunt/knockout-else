@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.8 (2014-10-14T16:22:30.458Z)
+  Knockout Else v1.0.9 (2014-10-14T16:27:50.883Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -242,8 +242,8 @@ function replaceBinding(handlerName) {
                 node = ve.firstChild(element),
                 lastNode = null;
 
-            do {
-                if (node && node.nodeType === 8) {
+            if (node) do {
+                if (node.nodeType === 8) {
                     if (inlineElseRex.test(node.nodeValue)) {
                         ve.insertAfter(element, document.createComment('ko else'), lastNode);
                         ve.insertAfter(element, document.createComment('/ko'), lastNode);
@@ -256,6 +256,7 @@ function replaceBinding(handlerName) {
                 }
                 lastNode = node;
             } while (node = ve.nextSibling(node));
+
             ve.insertAfter(element, closeComment, lastNode);
             ve.prepend(element, openComment);
             var innerContext = {

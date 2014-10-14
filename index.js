@@ -228,8 +228,8 @@ function replaceBinding(handlerName) {
                 node = ve.firstChild(element),
                 lastNode = null;
 
-            do {
-                if (node && node.nodeType === 8) {
+            if (node) do {
+                if (node.nodeType === 8) {
                     if (inlineElseRex.test(node.nodeValue)) {
                         ve.insertAfter(element, document.createComment('ko else'), lastNode);
                         ve.insertAfter(element, document.createComment('/ko'), lastNode);
@@ -242,6 +242,7 @@ function replaceBinding(handlerName) {
                 }
                 lastNode = node;
             } while (node = ve.nextSibling(node));
+
             ve.insertAfter(element, closeComment, lastNode);
             ve.prepend(element, openComment);
             var innerContext = {
