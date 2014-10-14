@@ -183,7 +183,9 @@ describe("The `else` binding", function () {
       "  <u data-bind='else'>C-</u>" +
       "<!-- /ko -->"
     );
-    ko.applyBindings(vm, div);
+    before(function () {
+      ko.applyBindings(vm, div);
+    });
 
     for (var i = 0; i < 8; i++) {
       testNestedTriad(i, vm, div);
@@ -218,7 +220,9 @@ describe("The `else` binding", function () {
       "  </u>" +
       "</u>"
     );
-    ko.applyBindings(vm, div);
+    before(function () {
+      ko.applyBindings(vm, div);
+    });
 
     for (var i = 0; i < 8; i++) {
       testNestedTriad(i, vm, div);
@@ -329,8 +333,9 @@ describe("The elseif binding", function () {
       "<!-- ko if: x -->X<!-- /ko -->" +
       "<!-- ko elseif: y -->Y<!-- /ko -->"
     );
-    ko.applyBindings(vm, div)
-
+    before(function () {
+      ko.applyBindings(vm, div);
+    })
     it("adds __elseChainIsSatisfied__ computed to node context", function () {
       // node 3 is <!--ko if: __elseCondition__-->
       vm.x(undefined);
@@ -362,7 +367,9 @@ describe("The elseif binding", function () {
       "<!-- ko elseif: y -->Y<!-- /ko -->" +
       "<!-- ko elseif: z -->Z<!-- /ko -->" 
     )
-    ko.applyBindings(vm, div);
+    before(function () {
+      ko.applyBindings(vm, div);  
+    })
     function set_vm(x, y, z) {vm.x(x); vm.y(y); vm.z(z); }
 
     it("shows only X if X is true", function () {
@@ -409,7 +416,10 @@ describe("The elseif binding", function () {
       "<!-- ko elseif: z -->Z<!-- /ko -->" +
       "<!-- ko else -->G<!-- /ko -->"
     )
-    ko.applyBindings(vm, div);
+    before(function (){
+      ko.applyBindings(vm, div);  
+    });
+    
     function set_vm(x, y, z) {vm.x(x); vm.y(y); vm.z(z); }
 
     it("does not show the else if x is true", function () {
@@ -434,5 +444,49 @@ describe("The elseif binding", function () {
   })
 })
 
+
+describe("the expression rewriters", function () {
+  it("converts the default (<!--\s*else\s*-->) to <!--/ko--><!-- ko else -->", function () {
+    var div = stringToDiv("<!-- else -->");
+    var carr = elsePreprocessor(div.firstChild);
+    assert.equal(div.innerHTML, "<!--/ko--><!--ko else-->")
+    assert.equal(div.childNodes.length, 2)
+  })
+  
+  it("converts <!-- elseif: expr -->", function () {
+    var div = stringToDiv("<!-- elseif: abc -->");
+    var carr = elseIfPreprocessor(div.firstChild);
+    assert.equal(div.innerHTML, "<!--/ko--><!--ko elseif: abc -->")
+    assert.equal(div.childNodes.length, 2)
+  })
+
+  describe("test case with if, elseif, else", function () {
+    var div = stringToDiv("<!-- ko if: x -->X" +
+      "<!-- elseif: y -->Y<!-- else -->Z<!--/ko-->");
+    var vm = {
+      x: ko.observable(),
+      y: ko.observable()
+    };
+
+    before(function () {
+      ko.applyBindings(vm, div);
+      console.log("a", div.innerHTML)
+      vm.x(true)
+      console.log("b", div.innerHTML)
+    });
+    
+
+    it("rewrites the html", function () {
+      assert.equal(div.innerHTML, '')
+    })
+
+    it("shows Z by default", function() {
+      vm.x(false); vm.y(false);
+      assert.equal(textFor(div), 'Z');
+    })
+
+  })
+
+})
 
 mocha.run();

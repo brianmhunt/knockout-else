@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.3 (2014-10-13T21:49:22.181Z)
+  Knockout Else v1.0.3 (2014-10-13T21:55:47.819Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -206,10 +206,16 @@ elseIfBinding = {
     }
 };
 
+function addElsePreprocessor(elseRewriterRex, elseIfRewriterRex) {
+    
+}
+
 function init(spec) {
     spec |= {};
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
+    var elseRewriter = spec.hasOwnProperty('elseRewriter') ? spec.elseRewriter: '^\s*else\s*$';
+    var elseIfRewriter = spec.hasOwnProperty('elseIfRewriter') ? spec.elseIfRewriter: '^\s*else\s*$';
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
         ko.virtualElements.allowedBindings[elseBindingName] = true;
@@ -218,6 +224,9 @@ function init(spec) {
         ko.bindingHandlers[elseIfBindingName] = elseIfBinding;
         ko.virtualElements.allowedBindings[elseIfBindingName] = true;
         conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
+    }
+    if (elseRewriter || elseIfRewriter) {
+        addElsePreprocessor(elseRewriter, elseIfRewriter)
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
 }// Exports

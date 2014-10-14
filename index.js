@@ -4,6 +4,8 @@ var conditionalHandlerKeys,
     elseIfBinding,
     elseBindingName,
     elseIfBindingName,
+    elseRewriterRex,
+    elseIfRewriterRex,
     startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
     endCommentRex = /^(<!--)?\s*\/ko/;
 
@@ -190,16 +192,57 @@ elseIfBinding = {
     }
 };
 
-function addElsePreprocessor(elseRewriterRex, elseIfRewriterRex) {
 
+// From knockout punches:
+function addNodePreprocessor(preprocessFn) {
+    var provider = ko.bindingProvider.instance;
+    if (provider.preprocessNode) {
+        var previousPreprocessFn = provider.preprocessNode;
+        provider.preprocessNode = function(node) {
+            var newNodes = previousPreprocessFn.call(this, node);
+            if (!newNodes)
+                newNodes = preprocessFn.call(this, node);
+            return newNodes;
+        };
+    } else {
+        provider.preprocessNode = preprocessFn;
+    }
+}
+
+function elsePreprocessor(node) {
+    var closeNode, elseNode;
+    console.log("NODE.nodeValue", node.nodeValue)
+    if (node.nodeType === 8 && elseRewriterRex.test(node.nodeValue)) {
+        console.log("EP:y")
+        closeNode = document.createComment('/ko');
+        elseNode = document.createComment('ko else');
+        node.parentNode.insertBefore(closeNode, node);
+        node.parentNode.replaceChild(elseNode, node);
+        return [closeNode, elseNode];
+    }
+}
+
+function elseIfPreprocessor(node) {
+    var match, closeNode, elseNode, nextNode;
+    console.log("EIP", node.nodeValue);
+    if (node.nodeType === 8 && (match = elseIfRewriterRex.exec(node.nodeValue))) {
+        console.log("EI:y", match)
+        nextNode = node.nextSibling;
+        closeNode = document.createComment('/ko');
+        elseNode = document.createComment('ko elseif:' + match[1]);
+        node.parentNode.insertBefore(elseNode, nextNode);
+        node.parentNode.insertBefore(closeNode, elseNode);
+        node.parentNode.removeChild(node);
+        return [closeNode, elseNode];
+    }
 }
 
 function init(spec) {
     spec |= {};
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
-    var elseRewriter = spec.hasOwnProperty('elseRewriter') ? spec.elseRewriter: '^\s*else\s*$';
-    var elseIfRewriter = spec.hasOwnProperty('elseIfRewriter') ? spec.elseIfRewriter: '^\s*else\s*$';
+    elseRewriterRex = spec.hasOwnProperty('elseRewriter') ? spec.elseRewriter: /^\s*else\s*$/;
+    elseIfRewriterRex = spec.hasOwnProperty('elseIfRewriter') ? spec.elseIfRewriter: /^\s*elseif:([\s\S]+)$/;
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
         ko.virtualElements.allowedBindings[elseBindingName] = true;
@@ -209,8 +252,11 @@ function init(spec) {
         ko.virtualElements.allowedBindings[elseIfBindingName] = true;
         conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
     }
-    if (elseRewriter || elseIfRewriter) {
-        addElsePreprocessor(elseRewriter, elseIfRewriter)
+    if (elseRewriterRex) {
+        addNodePreprocessor(elsePreprocessor);
+    }
+    if (elseIfRewriterRex) {
+        addNodePreprocessor(elseIfPreprocessor);
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
 }
