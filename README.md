@@ -116,8 +116,8 @@ You likely do not need to specify any, but the options are:
 | Argument | Default | Meaning
 |---       | ---     | ---
 | inlineElse | `true`  | `<bool>` When truthy the `<!-- else -->` and `<!-- elseif: -->` short-hands will be enabled.
-| elseBindingName | `else` | `<string>|falsy` The name of the binding for 'else'; falsy to disable.
-| elseIfBindingName  | `elseif` | `<string>|falsy` The name of the binding for 'elseif'; falsy to disable.
+| elseBindingName | `else` | `<string> or falsy` The name of the binding for 'else'; falsy to disable.
+| elseIfBindingName  | `elseif` | `<string> or falsy` The name of the binding for 'elseif'; falsy to disable.
 
 
 ES5 things
