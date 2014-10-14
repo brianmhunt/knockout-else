@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.4 (2014-10-14T15:11:45.664Z)
+  Knockout Else v1.0.5 (2014-10-14T15:42:47.436Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */

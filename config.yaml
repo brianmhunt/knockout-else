@@ -13,7 +13,6 @@ header: |
       root.KnockoutElse = factory(root.ko);
     }
   }(this, function (ko) {
-  var KE = {};
 
 footer: |
   // Exports
