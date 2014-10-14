@@ -17,43 +17,97 @@ It should work fine in the ordinary with AMD/CommonJS.
 
 ### How to use
 
-Some examples:
+#### Two block elements
 
 ```html
 <div data-bind='if: x'>X</div>
 <div data-bind='else'>!X</div>
+```
 
-
+#### Two virtual elements
+```html
 <!-- ko if: x -->
 X is truthy
 <!-- /ko -->
 <!-- ko else -->
 X is not truthy.
 <!-- /ko -->
+```
 
-
+#### An Element + virtual else
+```html
 <div data-bind='template: {if: x, foreach: arr}'></div>
 <!-- ko else -->
 X is false or arr is empty/undefined.
 <!-- /ko -->
+```
 
 
+#### A virtual if and else-element
+```html
 <!-- ko foreach: arr -->
 <!-- /ko -->
 <div data-bind='else'>
 arr is empty or undefined.
 </div>
-
-
-<!-- ko if: x -->X is true<!-- /ko -->
-<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
-<!-- else -->Neither X nor Y is true<!-- /ko -->
-
-<!-- ko if: x -->X is true<!-- /ko -->
-<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
-<!-- elseif: z -->X is not true, Y is not true, but Z is true.<!-- /ko -->
-
 ```
+
+#### else and else-if
+```html
+<!-- ko if: x -->X is true<!-- /ko -->
+<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
+<div data-bind='elseif: z'>Z, but not X nor Y.</div>
+<!-- else -->It's all pie.<!-- /ko -->
+```
+
+
+#### inline else/else-if short-hand
+
+Knockout-else provides short-hand virtual-element-like comments `else` and 
+`elseif: expression`. These are rewritten as `<!--/ko--><!--ko else-->`
+and `<!--/ko--><!-- ko elseif: expression -->`. The `<!--/ko--> is there to 
+close the preceding/excapsulating conditional block.
+
+With tags:
+```html
+<div data-bind='if: x' -->
+  X
+  <!-- elseif: y -->
+  not X but Y
+  <!-- else -->
+  Neither X nor Y
+</div>
+```
+
+With virtual elements:
+```html
+<!-- ko if: x -->X
+<!-- elseif: y -->Y
+<!-- else -->~X and ~Y
+```
+
+The `inlineElse` short-hand uses a wrapper for the respective original knockout 
+bindings. The original bindings `if`, `ifnot`, `template` and `foreach` are
+accessible still through `ko.bindingHandlers.__ko_if`, ....
+
+The virtual elements above will be rewritten as:
+
+```html
+  <!--ko if: x-->
+    <!--ko __ko_if: __elseWrapperValueAccessor__()-->
+      X
+    <!--/ko-->
+    <!--ko elseif: y-->
+      <!--ko __ko_if: __elseCondition__-->
+        Y
+      <!--/ko-->
+    <!--/ko-->
+    <!-- ko else -->
+       ~X and ~Y
+    <!-- /ko -->
+  <!--/ko-->
+```
+
 
 ### `spec` argument for `init`
 
@@ -61,8 +115,9 @@ You likely do not need to specify any, but the options are:
 
 | Argument | Default | Meaning
 |---       | ---     | ---
-| elseBindingName  | `else` | `<string>` The name of the binding for 'else'; falsy to disable.
-| elseIfBindingName  | `elseif` | `<string>` The name of the binding for 'elseif'; falsy to disable.
+| inlineElse | `true`  | `<bool>` When truthy the `<!-- else -->` and `<!-- elseif: -->` short-hands will be enabled.
+| elseBindingName | `else` | `<string>|falsy` The name of the binding for 'else'; falsy to disable.
+| elseIfBindingName  | `elseif` | `<string>|falsy` The name of the binding for 'elseif'; falsy to disable.
 
 
 ES5 things

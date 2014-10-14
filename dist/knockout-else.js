@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.3 (2014-10-14T00:19:35.848Z)
+  Knockout Else v1.0.4 (2014-10-14T15:11:45.664Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -19,8 +19,16 @@ var conditionalHandlerKeys,
     elseIfBinding,
     elseBindingName,
     elseIfBindingName,
+    inlineElse,
     startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
-    endCommentRex = /^(<!--)?\s*\/ko/;
+    endCommentRex = /^(<!--)?\s*\/ko/,
+    ve = ko.virtualElements, // convenience
+    rewrittenBindingsName = {
+        'if': '__ko_if',
+        'ifnot': '__ko_ifnot',
+        'template': '__ko_template',
+        'foreach': '__ko_foreach'
+    };
 
 
 function startsCommentBinding(node) {
@@ -61,6 +69,11 @@ conditionalHandlerMap = {
     }
 };
 
+conditionalHandlerMap[rewrittenBindingsName['if']] = conditionalHandlerMap['if'];
+conditionalHandlerMap[rewrittenBindingsName['ifnot']] = conditionalHandlerMap['if'];
+conditionalHandlerMap[rewrittenBindingsName['template']] = conditionalHandlerMap['template'];
+conditionalHandlerMap[rewrittenBindingsName['foreach']] = conditionalHandlerMap['foreach'];
+
 
 function elseIfBindingConditionalHandler(bindingFn, node) {return function() {
         return !elseChainIsSatisfied(node) && !ko.unwrap(bindingFn());
@@ -70,7 +83,7 @@ function elseIfBindingConditionalHandler(bindingFn, node) {return function() {
 function elseChainIsSatisfied(node) {
     // If the preceding else/if chain is satisfied (i.e. an else block is true/shown),
     // then this else block should not be shown.
-    return ko.contextFor(ko.virtualElements.firstChild(node)).__elseChainIsSatisfied__();
+    return ko.contextFor(ve.firstChild(node)).__elseChainIsSatisfied__();
 }
 
 function getBindingConditional(node, bindings) {
@@ -130,32 +143,40 @@ function getPrecedingConditional(node, bindingContext) {
 }
 
 function getLastChild(node) {
-    var nextChild = ko.virtualElements.firstChild(node),
+    var nextChild = ve.firstChild(node),
         lastChild;
 
     do {
         lastChild = nextChild;
-    } while (nextChild = ko.virtualElements.nextSibling(nextChild));
+    } while (nextChild = ve.nextSibling(nextChild));
 
     return lastChild;
 }
 
 function wrapElementChildrenWithConditional(element) {
+    var conditionComment;
     // add a strut so this element has at least one item.
-    if (!ko.virtualElements.firstChild(element)) {
-        ko.virtualElements.setDomNodeChildren(element,
+    if (!ve.firstChild(element)) {
+        // Every if/block needs at least one element so we can call
+        // contextFor on it.
+        ve.setDomNodeChildren(element,
             [document.createComment('strut')]
         );
     }
 
-    ko.virtualElements.insertAfter(element,
+    ve.insertAfter(element,
         document.createComment('/ko'),
         getLastChild(element)
     );
 
-    ko.virtualElements.prepend(element,
-        document.createComment('ko if: __elseCondition__')
-    );
+    if (inlineElse) {
+        conditionComment = document.createComment(
+            'ko ' + rewrittenBindingsName['if'] + ': __elseCondition__'
+        );
+    } else {
+        conditionComment = document.createComment('ko if: __elseCondition__');
+    }
+    ve.prepend(element, conditionComment);   
 }
 
 function applyElseBinding(element, conditional, bindingContext, innerContext) {
@@ -205,20 +226,77 @@ elseIfBinding = {
     }
 };
 
+
+var inlineElseRex = /^\s*else\s*$/;
+var inlineElseIfRex = /^\s*else\s*if:\s*([\s\S]+)$/;
+function replaceBinding(handlerName) {
+    var originalHandlerName = rewrittenBindingsName[handlerName];
+
+    // Save the old binding.
+    ko.bindingHandlers[originalHandlerName] = ko.bindingHandlers[handlerName];
+    ko.bindingHandlers[handlerName] = {
+        rewrittenFrom: ko.bindingHandlers[handlerName],
+        init: function (element, valueAccessor, ab, vm, bindingContext) {
+            var openComment = document.createComment('ko ' +
+                    originalHandlerName + ": __elseWrapperValueAccessor__()"),
+                closeComment = document.createComment("/ko"),
+                node = ve.firstChild(element),
+                lastNode = null;
+
+            do {
+                if (node.nodeType === 8) {
+                    if (inlineElseRex.test(node.nodeValue)) {
+                        ve.insertAfter(element, document.createComment('ko else'), lastNode);
+                        ve.insertAfter(element, document.createComment('/ko'), lastNode);
+                        node.nodeValue = '';
+                    } else if (match = inlineElseIfRex.exec(node.nodeValue)) {
+                        ve.insertAfter(element, document.createComment('ko elseif: ' + match[1]), lastNode);
+                        ve.insertAfter(element, document.createComment('/ko'), lastNode)
+                        node.nodeValue = '';
+                    }
+                }
+                lastNode = node;
+            } while (node = ve.nextSibling(node));
+            ve.insertAfter(element, closeComment, lastNode);
+            ve.prepend(element, openComment);
+            var innerContext = {
+                __elseWrapperValueAccessor__: valueAccessor
+            };
+            ko.applyBindingsToDescendants(bindingContext.extend(innerContext), element);
+            return {controlsDescendantBindings: true};
+        }
+    };
+    ve.allowedBindings[originalHandlerName] = true;
+}
+
+
 function init(spec) {
-    spec |= {};
+    if (!spec) {
+        spec = {};
+    }
+    inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse : true;
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
+
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
-        ko.virtualElements.allowedBindings[elseBindingName] = true;
+        ve.allowedBindings[elseBindingName] = true;
     }
     if (elseIfBindingName) {
         ko.bindingHandlers[elseIfBindingName] = elseIfBinding;
-        ko.virtualElements.allowedBindings[elseIfBindingName] = true;
+        ve.allowedBindings[elseIfBindingName] = true;
         conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
     }
+    if (inlineElse) {
+        // Replace if, ifnot, template & foreach with our wrappers that support
+        // <!-- else --> and <!-- elseif -->.
+        replaceBinding('if');
+        replaceBinding('ifnot');
+        replaceBinding('template');
+        replaceBinding('foreach');
+    }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
-}// Exports
+}
+// Exports
   return {init: init};
 }));
