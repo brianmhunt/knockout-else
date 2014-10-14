@@ -52,28 +52,23 @@ arr is empty or undefined.
 </div>
 ```
 
-#### else and else-if blocks
+#### else and else-if
 ```html
 <!-- ko if: x -->X is true<!-- /ko -->
 <!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
-<!-- else -->Neither X nor Y is true<!-- /ko -->
+<div data-bind='elseif: z'>Z, but not X nor Y.</div>
+<!-- else -->It's all pie.<!-- /ko -->
 ```
 
-#### else-if chaining
-
-```html
-<!-- ko if: x -->X is true<!-- /ko -->
-<!-- elseif: y -->X is not true, but Y is.<!-- /ko -->
-<!-- elseif: z -->X is not true, Y is not true, but Z is true.<!-- /ko -->
-```
 
 #### inline else/else-if short-hand
-```html
-<!-- ko if: x -->
-<!-- elseif: y -->
-<!-- else -->
-```
 
+Knockout-else provides short-hand virtual-element-like comments `else` and 
+`elseif: expression`. These are rewritten as `<!--/ko--><!--ko else-->`
+and `<!--/ko--><!-- ko elseif: expression -->`. The `<!--/ko--> is there to 
+close the preceding/excapsulating conditional block.
+
+With tags:
 ```html
 <div data-bind='if: x' -->
   X
@@ -82,6 +77,35 @@ arr is empty or undefined.
   <!-- else -->
   Neither X nor Y
 </div>
+```
+
+With virtual elements:
+```html
+<!-- ko if: x -->X
+<!-- elseif: y -->Y
+<!-- else -->~X and ~Y
+```
+
+The `inlineElse` short-hand uses a wrapper for the respective original knockout 
+bindings. The original bindings `if`, `ifnot`, `template` and `foreach` are
+accessible still through `ko.bindingHandlers.__ko_if`, ....
+
+The virtual elements above will be rewritten as:
+
+```html
+  <!--ko if: x-->
+    <!--ko __ko_if: __elseWrapperValueAccessor__()-->
+      X
+    <!--/ko-->
+    <!--ko elseif: y-->
+      <!--ko __ko_if: __elseCondition__-->
+        Y
+      <!--/ko-->
+    <!--/ko-->
+    <!-- ko else -->
+       ~X and ~Y
+    <!-- /ko -->
+  <!--/ko-->
 ```
 
 
