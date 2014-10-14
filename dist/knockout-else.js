@@ -1,5 +1,5 @@
 /*!
-  Knockout Else v1.0.3 (2014-10-13T21:55:47.819Z)
+  Knockout Else v1.0.3 (2014-10-14T13:37:23.876Z)
   By: Brian M Hunt (C) 2014
   License: MIT
 */
@@ -18,15 +18,18 @@ var conditionalHandlerKeys,
     elseBinding,
     elseIfBinding,
     elseBindingName,
-    elseIfBindingName;
+    elseIfBindingName,
+    startCommentRex = /^(<!--)?\s*ko\s+[\s\S]+/,
+    endCommentRex = /^(<!--)?\s*\/ko/,
+    ve = ko.virtualElements; // convenience
 
 
 function startsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*ko\s+[\s\S]+/);
+    return startCommentRex.test(node.nodeValue);
 } 
 
 function endsCommentBinding(node) {
-    return node.nodeValue.match(/^(<!--)?\s*\/ko/);
+    return endCommentRex.test(node.nodeValue);
 }
 
 // These functions return true when the respective `else` binding should be shown,
@@ -68,7 +71,7 @@ function elseIfBindingConditionalHandler(bindingFn, node) {return function() {
 function elseChainIsSatisfied(node) {
     // If the preceding else/if chain is satisfied (i.e. an else block is true/shown),
     // then this else block should not be shown.
-    return ko.contextFor(ko.virtualElements.firstChild(node)).__elseChainIsSatisfied__();
+    return ko.contextFor(ve.firstChild(node)).__elseChainIsSatisfied__();
 }
 
 function getBindingConditional(node, bindings) {
@@ -81,7 +84,6 @@ function getBindingConditional(node, bindings) {
             handlerFn = conditionalHandlerMap[key].call(this, conditionalBinding, node);
             return handlerFn && ko.computed({
                 read: handlerFn,
-                pure: true,
                 disposeWhenNodeIsRemoved: node
             }); 
         }
@@ -129,30 +131,30 @@ function getPrecedingConditional(node, bindingContext) {
 }
 
 function getLastChild(node) {
-    var nextChild = ko.virtualElements.firstChild(node),
+    var nextChild = ve.firstChild(node),
         lastChild;
 
     do {
         lastChild = nextChild;
-    } while (nextChild = ko.virtualElements.nextSibling(nextChild));
+    } while (nextChild = ve.nextSibling(nextChild));
 
     return lastChild;
 }
 
 function wrapElementChildrenWithConditional(element) {
     // add a strut so this element has at least one item.
-    if (!ko.virtualElements.firstChild(element)) {
-        ko.virtualElements.setDomNodeChildren(element,
+    if (!ve.firstChild(element)) {
+        ve.setDomNodeChildren(element,
             [document.createComment('strut')]
         );
     }
 
-    ko.virtualElements.insertAfter(element,
+    ve.insertAfter(element,
         document.createComment('/ko'),
         getLastChild(element)
     );
 
-    ko.virtualElements.prepend(element,
+    ve.prepend(element,
         document.createComment('ko if: __elseCondition__')
     );
 }
@@ -182,7 +184,6 @@ elseIfBinding = {
             chainIsSatisfied;
         preceding = getPrecedingConditional(element, bindingContext);
         chainIsSatisfied = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 if (!preceding.conditional())
@@ -193,7 +194,6 @@ elseIfBinding = {
             }
         });
         conditional = ko.computed({
-            pure: true,
             disposeWhenNodeIsRemoved: element,
             read: function () {
                 return Boolean(ko.unwrap(va()) && preceding.conditional())
@@ -206,29 +206,86 @@ elseIfBinding = {
     }
 };
 
-function addElsePreprocessor(elseRewriterRex, elseIfRewriterRex) {
-    
+
+function replaceBinding(handlerName) {
+    var originalHandlerName = '__elseRewritten_' + handlerName
+    // Save the old binding.
+    ko.bindingHandlers[originalHandlerName] = ko.bindingHandlers[handlerName];
+    ko.bindingHandlers[handlerName] = {
+        init: (element, valueAccessor, allBindings, viewModel, bindingContext) {
+            element.appendChild(document.createComment("/ko"));
+            element.insertBefore(document.createComment('ko ' +
+                originalHandlerName + ": __elseWrapperValueAccessor__()"),
+                element.firstChild
+            );
+            var innerContext = {
+                __elseWrapperValueAccessor__: valueAccessor
+            };
+            ko.applyBindingsToDescendants(bindingContext.extend(innerContext), element);
+            return {controlsDescendantBindings: true};
+        }
+    };
+}
+
+
+// Replace if, ifnot, template & foreach with our wrappers that support
+// <!-- else --> and <!-- elseif -->.
+function replaceCoreBindings() {
+    replaceBinding('if');
+    replaceBinding('template');
+    replaceBinding('ifnot');
+    replaceBinding('foreach');
+}
+
+
+function elsePreprocessor(node) {
+    var closeNode, elseNode;
+    console.log("NODE.nodeValue", node.nodeValue)
+    if (node.nodeType === 8 && elseRewriterRex.test(node.nodeValue)) {
+        console.log("EP:y")
+        closeNode = document.createComment('/ko');
+        elseNode = document.createComment('ko else');
+        node.parentNode.insertBefore(closeNode, node);
+        node.parentNode.replaceChild(elseNode, node);
+        return [closeNode, elseNode];
+    }
+}
+
+function elseIfPreprocessor(node) {
+    var match, closeNode, elseNode, nextNode;
+    console.log("EIP", node.nodeValue);
+    if (node.nodeType === 8 && (match = elseIfRewriterRex.exec(node.nodeValue))) {
+        console.log("EI:y", match)
+        nextNode = node.nextSibling;
+        closeNode = document.createComment('/ko');
+        elseNode = document.createComment('ko elseif:' + match[1]);
+        node.parentNode.insertBefore(elseNode, nextNode);
+        node.parentNode.insertBefore(closeNode, elseNode);
+        node.parentNode.removeChild(node);
+        return [closeNode, elseNode];
+    }
 }
 
 function init(spec) {
     spec |= {};
+    var inlineElse = spec.hasOwnProperty('inlineElse') ? spec.inlineElse: true;
     elseBindingName = spec.hasOwnProperty('elseBinding') ? spec.elseBinding : 'else';
     elseIfBindingName = spec.hasOwnProperty('elseIfBinding') ? spec.elseIfBinding : 'elseif';
-    var elseRewriter = spec.hasOwnProperty('elseRewriter') ? spec.elseRewriter: '^\s*else\s*$';
-    var elseIfRewriter = spec.hasOwnProperty('elseIfRewriter') ? spec.elseIfRewriter: '^\s*else\s*$';
+
     if (elseBindingName) {
         ko.bindingHandlers[elseBindingName] = elseBinding;
-        ko.virtualElements.allowedBindings[elseBindingName] = true;
+        ve.allowedBindings[elseBindingName] = true;
     }
     if (elseIfBindingName) {
         ko.bindingHandlers[elseIfBindingName] = elseIfBinding;
-        ko.virtualElements.allowedBindings[elseIfBindingName] = true;
+        ve.allowedBindings[elseIfBindingName] = true;
         conditionalHandlerMap[elseIfBindingName] = elseIfBindingConditionalHandler;
     }
-    if (elseRewriter || elseIfRewriter) {
-        addElsePreprocessor(elseRewriter, elseIfRewriter)
+    if (inlineElse) {
+        replaceCoreBindings();
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);
-}// Exports
-  return {init: init};
+}
+// Exports
+  return {init: init, restore: restore};
 }));

@@ -4,7 +4,7 @@
 
  */
 
-init();
+init({inlineElse: false});
 mocha.setup('bdd')
 assert = chai.assert;
 
@@ -445,48 +445,119 @@ describe("The elseif binding", function () {
 })
 
 
-describe("the expression rewriters", function () {
-  it("converts the default (<!--\s*else\s*-->) to <!--/ko--><!-- ko else -->", function () {
-    var div = stringToDiv("<!-- else -->");
-    var carr = elsePreprocessor(div.firstChild);
-    assert.equal(div.innerHTML, "<!--/ko--><!--ko else-->")
-    assert.equal(div.childNodes.length, 2)
+describe("the conditional binding replacers", function () {
+  var originalIf = ko.bindingHandlers.if;
+  var zSpec = {
+    init: function () {}
+  };
+
+  beforeEach(function () {
+    ko.bindingHandlers.z = zSpec;
   })
+
+  afterEach(function () {
+    delete ko.bindingHandlers.z;
+    delete ko.bindingHandlers.__elseRewritten_z;
+    ko.bindingHandlers.if = originalIf;
+  })
+
+  it("replaces the binding", function () {
+    assert.strictEqual(ko.bindingHandlers.z, zSpec);
+    replaceBinding('z');
+    assert.notStrictEqual(ko.bindingHandlers.z, zSpec);
+    assert.strictEqual(ko.bindingHandlers.z.rewrittenFrom, zSpec);
+  })
+
+  it("wraps the contents of an arbitrary binding", function () {
+    ko.bindingHandlers.z = {init: function () {}};
+    replaceBinding('z');
+    var div = stringToDiv("<u data-bind='z'>x</u>");
+    ko.applyBindings({}, div);
+    assert.equal(div.innerHTML, '<u data-bind="z">' +
+        '<!--ko __elseRewritten_z: __elseWrapperValueAccessor__()-->' +
+        'x<!--/ko--></u>');
+  })
+
+  describe("when replacing 'if'", function () {
+    beforeEach(function () {
+      replaceBinding('if');
+    })
+
+    it("hides when argument is falsy", function () {
+      var obs = ko.observable(false);
+      var div = stringToDiv("<!--ko if: x-->Y<!--/ko-->")
+      ko.applyBindings({x: obs}, div);
+      assert.equal(div.innerText, '')
+    })
+
+    it("hides when argument is truthy", function () {
+      var obs = ko.observable(true);
+      var div = stringToDiv("<!--ko if: x-->Y<!--/ko-->")
+      ko.applyBindings({x: obs}, div);
+      assert.equal(div.innerText, 'Y')
+    })
+
+    it("rewrites <!-- else -->", function () {
+      var obs = ko.observable(false);
+      var div = stringToDiv("<!--ko if: x-->Y<!-- else -->Z<!--/ko-->")
+      ko.applyBindings({x: obs}, div);
+      assert.equal(div.innerHTML, 'Z')
+    })
+
+    it("shows else when if is not truthy", function () {
+      var obs = ko.observable(false);
+      var div = stringToDiv("<!--ko if: x-->Y<!-- else -->Z<!--/ko-->")
+      ko.applyBindings({x: obs}, div);
+      assert.equal(div.innerText, 'Z')
+      obs(true)
+      assert.equal(div.innerText, 'Y')
+
+
+    })
+  })
+
+
+
+
+  // it("converts the default (<!--\s*else\s*-->) to <!--/ko--><!-- ko else -->", function () {
+  //   var div = stringToDiv("<!-- else -->");
+  //   var carr = elsePreprocessor(div.firstChild);
+  //   assert.equal(div.innerHTML, "<!--/ko--><!--ko else-->")
+  //   assert.equal(div.childNodes.length, 2)
+  // })
   
-  it("converts <!-- elseif: expr -->", function () {
-    var div = stringToDiv("<!-- elseif: abc -->");
-    var carr = elseIfPreprocessor(div.firstChild);
-    assert.equal(div.innerHTML, "<!--/ko--><!--ko elseif: abc -->")
-    assert.equal(div.childNodes.length, 2)
-  })
+  // it("converts <!-- elseif: expr -->", function () {
+  //   var div = stringToDiv("<!-- elseif: abc -->");
+  //   var carr = elseIfPreprocessor(div.firstChild);
+  //   assert.equal(div.innerHTML, "<!--/ko--><!--ko elseif: abc -->")
+  //   assert.equal(div.childNodes.length, 2)
+  // })
 
-  describe("test case with if, elseif, else", function () {
-    var div = stringToDiv("<!-- ko if: x -->X" +
-      "<!-- elseif: y -->Y<!-- else -->Z<!--/ko-->");
-    var vm = {
-      x: ko.observable(),
-      y: ko.observable()
-    };
+  // describe("test case with if, elseif, else", function () {
+  //   var div = stringToDiv("<!-- ko if: x -->X" +
+  //     "<!-- elseif: y -->Y<!-- else -->Z<!--/ko-->");
+  //   var vm = {
+  //     x: ko.observable(),
+  //     y: ko.observable()
+  //   };
 
-    before(function () {
-      ko.applyBindings(vm, div);
-      console.log("a", div.innerHTML)
-      vm.x(true)
-      console.log("b", div.innerHTML)
-    });
+  //   before(function () {
+  //     ko.applyBindings(vm, div);
+  //     console.log("a", div.innerHTML)
+  //     vm.x(true)
+  //     console.log("b", div.innerHTML)
+  //   });
     
 
-    it("rewrites the html", function () {
-      assert.equal(div.innerHTML, '')
-    })
+  //   it("rewrites the html", function () {
+  //     assert.equal(div.innerHTML, '')
+  //   })
 
-    it("shows Z by default", function() {
-      vm.x(false); vm.y(false);
-      assert.equal(textFor(div), 'Z');
-    })
-
-  })
-
+  //   it("shows Z by default", function() {
+  //     vm.x(false); vm.y(false);
+  //     assert.equal(textFor(div), 'Z');
+  //   })
+  // })
 })
 
 mocha.run();
