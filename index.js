@@ -212,18 +212,23 @@ elseIfBinding = {
 };
 
 
-var inlineElseRex = /^\s*else\s*$/;
-var inlineElseIfRex = /^\s*else\s*if:\s*([\s\S]+)$/;
+var inlineElseRex = /^\s*else\s*$/,
+    inlineElseIfRex = /^\s*else\s*if:\s*([\s\S]+)$/;
 function replaceBinding(handlerName) {
-    var originalHandlerName = rewrittenBindingsName[handlerName];
+    var savedHandlerName = rewrittenBindingsName[handlerName],
+        originalHandler = ko.bindingHandlers[handlerName];
+
+    if (ko.bindingHandlers[handlerName].originalHandler) {
+        throw new Error('Knockout-else replaceBinding cannot be applied twice.');
+    }
 
     // Save the old binding.
-    ko.bindingHandlers[originalHandlerName] = ko.bindingHandlers[handlerName];
+    ko.bindingHandlers[savedHandlerName] = originalHandler;
     ko.bindingHandlers[handlerName] = {
-        rewrittenFrom: ko.bindingHandlers[handlerName],
+        originalHandler: originalHandler,
         init: function (element, valueAccessor, ab, vm, bindingContext) {
             var openComment = document.createComment('ko ' +
-                    originalHandlerName + ": __elseWrapperValueAccessor__()"),
+                    savedHandlerName + ": __elseWrapperValueAccessor__()"),
                 closeComment = document.createComment("/ko"),
                 node = ve.firstChild(element),
                 lastNode = null;
@@ -250,9 +255,11 @@ function replaceBinding(handlerName) {
             };
             ko.applyBindingsToDescendants(bindingContext.extend(innerContext), element);
             return {controlsDescendantBindings: true};
-        }
+        },
+        // Add hook for the `foreach` binding.
+        makeTemplateValueAccessor: originalHandler.makeTemplateValueAccessor
     };
-    ve.allowedBindings[originalHandlerName] = true;
+    ve.allowedBindings[savedHandlerName] = true;
 }
 
 
@@ -278,7 +285,6 @@ function init(spec) {
         // <!-- else --> and <!-- elseif -->.
         replaceBinding('if');
         replaceBinding('ifnot');
-        replaceBinding('template');
         replaceBinding('foreach');
     }
     conditionalHandlerKeys = Object.keys(conditionalHandlerMap);

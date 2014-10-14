@@ -453,26 +453,27 @@ describe("the conditional binding replacers", function () {
   };
 
   beforeEach(function () {
-    ko.bindingHandlers.z = zSpec;
     inlineElse = true;
+    replaceBinding('if')
+    replaceBinding('foreach')
   })
 
   afterEach(function () {
-    delete ko.bindingHandlers.z;
-    delete ko.bindingHandlers.__elseRewritten_z;
-    ko.bindingHandlers.if = originalIf;
+    ko.bindingHandlers.if = ko.bindingHandlers.if.originalHandler;
+    // ko.bindingHandlers.template = ko.bindingHandlers.template.originalHandler;
+    ko.bindingHandlers.foreach = ko.bindingHandlers.foreach.originalHandler;
     inlineElse = false;
   })
 
-  it("replaces the binding", function () {
-    assert.strictEqual(ko.bindingHandlers.z, zSpec);
-    replaceBinding('z');
-    assert.notStrictEqual(ko.bindingHandlers.z, zSpec);
-    assert.strictEqual(ko.bindingHandlers.z.rewrittenFrom, zSpec);
+  it("replaces the if binding", function () {
+    assert.strictEqual(ko.bindingHandlers['if'].originalHandler, originalIf);
+  })
+
+  it("throws an error on double-wrap", function () {
+    assert.throws(function() {replaceBinding('if')}, 'Knockout-else replaceBinding cannot be applied twice.')
   })
 
   it("wraps the contents of an if binding", function () {
-    replaceBinding('if');
     var div = stringToDiv("<u data-bind='if: 1'>x</u>");
     ko.applyBindings({}, div);
     assert.equal(div.innerHTML, '<u data-bind="if: 1">' +
@@ -480,11 +481,32 @@ describe("the conditional binding replacers", function () {
         'x<!--/ko--></u>');
   })
 
-  describe("when replacing 'if'", function () {
+  describe("foreach/else", function () {
+    var obs = ko.observableArray();
+    var div;
     beforeEach(function () {
-      replaceBinding('if');
+      div = stringToDiv("<div data-bind='foreach: x'>X<!-- else -->Y</div>");
+      ko.applyBindings({x: obs}, div);
     })
 
+    it("shows 'Y' when array is empty", function () {
+      obs([])
+      assert.equal(textFor(div), 'Y')
+    })
+
+    it("shows 'X' when array is non-empty", function () {
+      obs([1])
+      assert.equal(textFor(div), 'X')
+    })
+  })
+
+  describe("replacing `template`", function () {
+    // It cannot be replaced because ko.bindingHandlers.template.{init,update}
+    // is called by the `foreach` and other bindings.
+    it("Is not replaced.")
+  })
+
+  describe("when replacing 'if'", function () {
     it("hides when argument is falsy", function () {
       var obs = ko.observable(false);
       var div = stringToDiv("<!--ko if: x-->Y<!--/ko-->")
