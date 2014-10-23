@@ -63,7 +63,9 @@ arr is empty or undefined.
 
 #### inline else/else-if short-hand
 
-Within an `if`, `ifnot` and `foreach` bindings, one can use HTML comments to indicate `else` and `elseif`. These are respectively rewritten as `<!--/ko--><!--ko else-->` and `<!--/ko--><!-- ko elseif: expression -->`. 
+Within an `if`, `ifnot` and `foreach` bindings, one can use HTML comments to indicate `else` and `elseif`. These are respectively rewritten as `<!--/ko--><!--ko else-->` and `<!--/ko--><!-- ko elseif: expression -->`.
+
+You need to pass `inlineElse: true` to the `init` function to turn this feature on.
 
 You can use inline short-hand with regular tags:
 ```html
