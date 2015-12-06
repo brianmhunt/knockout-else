@@ -1,7 +1,7 @@
 header: |
   /*!
     Knockout Else v<%=pkg.version%> (<%=now.toISOString()%>)
-    By: Brian M Hunt (C) 2014
+    By: Brian M Hunt (C) 2014-15
     License: MIT
   */
   (function (root, factory) {

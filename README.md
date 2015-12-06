@@ -142,3 +142,9 @@ ES5 things
 The following will need to be shimmed for older browser support (i.e. IE8 and lower):
 
 - Object.keys
+
+
+Changelog
+---
+
+- 6 Dec 2015 🌵  — Merge #3 — Fix memory leak
