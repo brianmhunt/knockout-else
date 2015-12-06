@@ -6,6 +6,7 @@
 
 init({inlineElse: false});
 mocha.setup('bdd')
+mocha.checkLeaks()
 assert = chai.assert;
 
 function stringToDiv(xml) {
@@ -393,7 +394,6 @@ describe("The elseif binding", function () {
     })
 
     it("shows Z if !X, !Y, Z", function () {
-      window.evm = vm;
       set_vm(false, false, true);
       assert.equal(textFor(div), 'Z')
     })
