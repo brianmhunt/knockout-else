@@ -72,8 +72,8 @@ function elseChainIsSatisfied(node) {
 }
 
 function getBindingConditional(node, bindings) {
-    var key, conditionalBinding;
-    for (i = conditionalHandlerKeys.length - 1; i >= 0; --i) {
+    var key, conditionalBinding, handlerFn;
+    for (var i = conditionalHandlerKeys.length - 1; i >= 0; --i) {
         key = conditionalHandlerKeys[i];
         conditionalBinding = bindings[key];
         
@@ -231,7 +231,7 @@ function replaceBinding(handlerName) {
                     savedHandlerName + ": __elseWrapperValueAccessor__()"),
                 closeComment = document.createComment("/ko"),
                 node = ve.firstChild(element),
-                lastNode = null;
+                lastNode = null, match;
 
             if (node) do {
                 if (node.nodeType === 8) {
