@@ -3,7 +3,7 @@ knockout-else
 
 else/elseif binding for Knockout
 
-## Deprecated: This functionality in this package is subsumed by github.com/knockout/tko.binding.if
+## Deprecated: This functionality in this package is subsumed by [knockout/tko.binding.if](/knockout/tko.binding.if)
 
 
 Re. https://github.com/knockout/knockout/issues/962
