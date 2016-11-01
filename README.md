@@ -3,6 +3,8 @@ knockout-else
 
 else/elseif binding for Knockout
 
+## Deprecated: This functionality in this package is subsumed by github.com/knockout/tko.binding.if
+
 
 Re. https://github.com/knockout/knockout/issues/962
 Originally from http://jsfiddle.net/bmh_ca/hyrvtps4/
